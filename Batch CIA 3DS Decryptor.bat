@@ -14,6 +14,7 @@ set /a TOTAL_PROCESSED=0
 :: PRE-PROCESSING: Temporarily rename .cci to .cci.3ds
 for %%a in (*.cci) do ren "%%a" "%%a.3ds"
 
+:: Initial cleanup (just in case)
 for %%a in (*.ncch) do del "%%a" >nul 2>&1
 
 :: --- LOOP 1: .3DS and .CCI GAMES ---
@@ -51,6 +52,9 @@ for %%a in (*.3ds) do (
     :: CALCULATE STATISTICS
     set /a TOTAL_PROCESSED+=1
     call :CALC_STATS "%%a" "!OUT_FILE!"
+    
+    :: IMMEDIATE CLEANUP FOR THIS FILE
+    del "!FULLNAME!.*.ncch" >nul 2>&1
     echo.
 )
 
@@ -77,6 +81,9 @@ for %%a in (*.cia) do (
             set /a i+=1
         )
         makerom -f cia -ignoresign -target p -o "!CUTN!-decfirst.cia"!ARG! >>log.txt 2>&1
+        
+        :: IMMEDIATE CLEANUP (Delete NCCH partitions, keep -decfirst.cia for next loop)
+        del "!CUTN!.*.ncch" >nul 2>&1
     )
 
     :: PATCH AND DLC
@@ -102,6 +109,8 @@ for %%a in (*.cia) do (
             makerom -f cia -ignoresign -target p -o "!OUT_FILE!"!ARG! >>log.txt 2>&1
             set /a TOTAL_PROCESSED+=1
             call :CALC_STATS "%%a" "!OUT_FILE!"
+            :: IMMEDIATE CLEANUP
+            del "!CUTN!.*.ncch" >nul 2>&1
             echo.
         )
         
@@ -112,6 +121,8 @@ for %%a in (*.cia) do (
             makerom -f cia -dlc -ignoresign -target p -o "!OUT_FILE!"!ARG! >>log.txt 2>&1
             set /a TOTAL_PROCESSED+=1
             call :CALC_STATS "%%a" "!OUT_FILE!"
+            :: IMMEDIATE CLEANUP
+            del "!CUTN!.*.ncch" >nul 2>&1
             echo.
         )
     )
@@ -128,9 +139,13 @@ for %%a in (*-decfirst.cia) do (
     :: Compare intermediate CIA with final CCI
     set /a TOTAL_PROCESSED+=1
     call :CALC_STATS "%%a" "!OUT_FILE!"
+    
+    :: IMMEDIATE CLEANUP (Delete the intermediate .cia file)
+    del "%%a" >nul 2>&1
     echo.
 )
 
+:: FINAL FAILSAFE CLEANUP (Just in case something was missed)
 for %%a in (*-decfirst.cia) do del "%%a" >nul 2>&1
 for %%a in (*.ncch) do del "%%a" >nul 2>&1
 
