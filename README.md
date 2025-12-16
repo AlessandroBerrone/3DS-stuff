@@ -1,7 +1,10 @@
 # Batch CIA 3DS Decryptor (Enhanced Edition)
 
+*Fork based on original work by [matiffeder](https://github.com/matiffeder/3DS-stuff)*
+
 An advanced and refined version of the popular batch script for automatic Nintendo 3DS ROM decryption.
 This fork optimizes the workflow for emulator users, adding support for new formats, cleaner file management, and detailed compression statistics.
+
 
 ## 🚀 New Features
 
@@ -62,6 +65,3 @@ Processing: Super Mario 3D Land (Patch)
 ## ⚠️ Disclaimer
 
 This script is provided "as is" for educational and personal backup purposes. Ensure you legally own the games you intend to decrypt. The author is not responsible for any misuse of this tool.
-
----
-*Fork based on original work by the 3DS community.*
