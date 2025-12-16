@@ -29,30 +29,29 @@ for %%a in (*.3ds) do (
         set "OUT_EXT=.3ds"
     )
 
-    if /i x!CUTN!==x!CUTN:decrypted=! (
-        echo Processing: !CUTN!
-        echo | decrypt "%%a" >>log.txt 2>&1
-        set ARG=
-        for %%f in ("!FULLNAME!.*.ncch") do (
-            if %%f==!FULLNAME!.Main.ncch set i=0
-            if %%f==!FULLNAME!.Manual.ncch set i=1
-            if %%f==!FULLNAME!.DownloadPlay.ncch set i=2
-            if %%f==!FULLNAME!.Partition4.ncch set i=3
-            if %%f==!FULLNAME!.Partition5.ncch set i=4
-            if %%f==!FULLNAME!.Partition6.ncch set i=5
-            if %%f==!FULLNAME!.N3DSUpdateData.ncch set i=6
-            if %%f==!FULLNAME!.UpdateData.ncch set i=7
-            set ARG=!ARG! -i "%%f:!i!:!i!"
-        )
-        
-        set "OUT_FILE=decrypted\!CUTN!!OUT_EXT!"
-        makerom -f cci -ignoresign -target p -o "!OUT_FILE!"!ARG! >>log.txt 2>&1
-        
-        :: CALCULATE STATISTICS
-        set /a TOTAL_PROCESSED+=1
-        call :CALC_STATS "%%a" "!OUT_FILE!"
-        echo.
+    :: REMOVED THE "IF DECRYPTED" CHECK HERE
+    echo Processing: !CUTN!
+    echo | decrypt "%%a" >>log.txt 2>&1
+    set ARG=
+    for %%f in ("!FULLNAME!.*.ncch") do (
+        if %%f==!FULLNAME!.Main.ncch set i=0
+        if %%f==!FULLNAME!.Manual.ncch set i=1
+        if %%f==!FULLNAME!.DownloadPlay.ncch set i=2
+        if %%f==!FULLNAME!.Partition4.ncch set i=3
+        if %%f==!FULLNAME!.Partition5.ncch set i=4
+        if %%f==!FULLNAME!.Partition6.ncch set i=5
+        if %%f==!FULLNAME!.N3DSUpdateData.ncch set i=6
+        if %%f==!FULLNAME!.UpdateData.ncch set i=7
+        set ARG=!ARG! -i "%%f:!i!:!i!"
     )
+    
+    set "OUT_FILE=decrypted\!CUTN!!OUT_EXT!"
+    makerom -f cci -ignoresign -target p -o "!OUT_FILE!"!ARG! >>log.txt 2>&1
+    
+    :: CALCULATE STATISTICS
+    set /a TOTAL_PROCESSED+=1
+    call :CALC_STATS "%%a" "!OUT_FILE!"
+    echo.
 )
 
 :: CLEANUP CCI NAMES
@@ -61,59 +60,59 @@ for %%a in (*.cci.3ds) do ren "%%a" "%%~na"
 :: --- LOOP 2: CIA (Content Extraction) ---
 for %%a in (*.cia) do (
     set CUTN=%%~na
-    if /i x!CUTN!==x!CUTN:decrypted=! (
-        ctrtool -tmd "%%a" >content.txt
-        set FILE="content.txt"
-        set /a i=0
-        set ARG=
-        
-        :: STANDARD CIA GAMES
-        findstr /pr "^T.*D.*00040000" !FILE! >nul
-        if not errorlevel 1 (
-            echo Processing CIA: !CUTN!
-            echo | decrypt "%%a" >>log.txt 2>&1
-            for %%f in ("!CUTN!.*.ncch") do (
-                set ARG=!ARG! -i "%%f:!i!:!i!"
-                set /a i+=1
-            )
-            makerom -f cia -ignoresign -target p -o "!CUTN!-decfirst.cia"!ARG! >>log.txt 2>&1
+    
+    :: REMOVED THE "IF DECRYPTED" CHECK HERE
+    ctrtool -tmd "%%a" >content.txt
+    set FILE="content.txt"
+    set /a i=0
+    set ARG=
+    
+    :: STANDARD CIA GAMES
+    findstr /pr "^T.*D.*00040000" !FILE! >nul
+    if not errorlevel 1 (
+        echo Processing CIA: !CUTN!
+        echo | decrypt "%%a" >>log.txt 2>&1
+        for %%f in ("!CUTN!.*.ncch") do (
+            set ARG=!ARG! -i "%%f:!i!:!i!"
+            set /a i+=1
         )
+        makerom -f cia -ignoresign -target p -o "!CUTN!-decfirst.cia"!ARG! >>log.txt 2>&1
+    )
 
-        :: PATCH AND DLC
-        findstr /pr "^T.*D.*0004000E ^T.*D.*0004008C" !FILE! >nul
+    :: PATCH AND DLC
+    findstr /pr "^T.*D.*0004000E ^T.*D.*0004008C" !FILE! >nul
+    if not errorlevel 1 (
+        set TEXT="Content id"
+        set /a X=0
+        echo | decrypt "%%a" >>log.txt 2>&1
+        for %%h in ("!CUTN!.*.ncch") do (
+            set NCCHN=%%~nh
+            set /a n=!NCCHN:%%~na.=!
+            if !n! gtr !X! set /a X=!n!
+        )
+        for /f "delims=" %%d in ('findstr /c:!TEXT! !FILE!') do (
+            set CONLINE=%%d
+            call :EXF
+        )
+        
+        findstr /pr "^T.*D.*0004000E" !FILE! >nul
         if not errorlevel 1 (
-            set TEXT="Content id"
-            set /a X=0
-            echo | decrypt "%%a" >>log.txt 2>&1
-            for %%h in ("!CUTN!.*.ncch") do (
-                set NCCHN=%%~nh
-                set /a n=!NCCHN:%%~na.=!
-                if !n! gtr !X! set /a X=!n!
-            )
-            for /f "delims=" %%d in ('findstr /c:!TEXT! !FILE!') do (
-                set CONLINE=%%d
-                call :EXF
-            )
-            
-            findstr /pr "^T.*D.*0004000E" !FILE! >nul
-            if not errorlevel 1 (
-                echo Processing Patch: !CUTN!
-                set "OUT_FILE=decrypted\!CUTN! (Patch).cia"
-                makerom -f cia -ignoresign -target p -o "!OUT_FILE!"!ARG! >>log.txt 2>&1
-                set /a TOTAL_PROCESSED+=1
-                call :CALC_STATS "%%a" "!OUT_FILE!"
-                echo.
-            )
-            
-            findstr /pr "^T.*D.*0004008C" !FILE! >nul
-            if not errorlevel 1 (
-                echo Processing DLC: !CUTN!
-                set "OUT_FILE=decrypted\!CUTN! (DLC).cia"
-                makerom -f cia -dlc -ignoresign -target p -o "!OUT_FILE!"!ARG! >>log.txt 2>&1
-                set /a TOTAL_PROCESSED+=1
-                call :CALC_STATS "%%a" "!OUT_FILE!"
-                echo.
-            )
+            echo Processing Patch: !CUTN!
+            set "OUT_FILE=decrypted\!CUTN! (Patch).cia"
+            makerom -f cia -ignoresign -target p -o "!OUT_FILE!"!ARG! >>log.txt 2>&1
+            set /a TOTAL_PROCESSED+=1
+            call :CALC_STATS "%%a" "!OUT_FILE!"
+            echo.
+        )
+        
+        findstr /pr "^T.*D.*0004008C" !FILE! >nul
+        if not errorlevel 1 (
+            echo Processing DLC: !CUTN!
+            set "OUT_FILE=decrypted\!CUTN! (DLC).cia"
+            makerom -f cia -dlc -ignoresign -target p -o "!OUT_FILE!"!ARG! >>log.txt 2>&1
+            set /a TOTAL_PROCESSED+=1
+            call :CALC_STATS "%%a" "!OUT_FILE!"
+            echo.
         )
     )
 )
